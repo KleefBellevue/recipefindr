@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RecipeFindr</title>
+  <meta name="description" content="Snap a photo of your fridge or pantry and get recipes that use what you already have.">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <img src="img/favicon.svg" alt="" width="28" height="28">
+        RecipeFindr
+      </a>
+      <span id="status" class="status">Checking server…</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>From photo to plate.</h1>
+      <p>Snap your fridge or pantry, check what we found, and get recipes that use what you already have. Less waste, less spending.</p>
+    </section>
+
+    <ol class="stepper" aria-label="Progress">
+      <li data-step="1"><span class="dot">1</span>Snap</li>
+      <li data-step="2"><span class="dot">2</span>Check</li>
+      <li data-step="3"><span class="dot">3</span>Cook</li>
+    </ol>
+
+    <!-- STEP 1: photo -->
+    <section class="panel" data-panel="1" aria-labelledby="step1-title">
+      <h2 id="step1-title">Show us what you've got</h2>
+
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-upload" aria-controls="pane-upload" aria-selected="true">Upload a photo</button>
+        <button type="button" role="tab" id="tab-url" aria-controls="pane-url" aria-selected="false">Use an image link</button>
+      </div>
+
+      <div id="pane-upload" role="tabpanel" aria-labelledby="tab-upload">
+        <div id="dropzone" class="dropzone">
+          <input id="file-input" type="file" accept="image/*,.heic,.heif" hidden>
+          <input id="camera-input" type="file" accept="image/*" capture="environment" hidden>
+
+          <div id="dz-empty" class="dz-empty">
+            <svg class="dz-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M8 14h7l3-5h12l3 5h7a3 3 0 0 1 3 3v20a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V17a3 3 0 0 1 3-3Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="24" cy="26" r="7.5" fill="none" stroke="currentColor" stroke-width="2.5"/></svg>
+            <p class="dz-title">Drag a photo of your fridge or pantry here</p>
+            <div class="dz-buttons">
+              <button type="button" id="browse-btn" class="btn secondary">Browse files</button>
+              <button type="button" id="camera-btn" class="btn secondary">Take a photo</button>
+            </div>
+            <p class="hint">JPG, PNG, WEBP or HEIC. You can also paste an image with Ctrl+V.</p>
+          </div>
+
+          <figure id="dz-preview" class="dz-preview" hidden>
+            <img id="preview-img" alt="Your selected photo">
+            <figcaption>
+              <span id="file-name"></span>
+              <button type="button" id="clear-file" class="link-btn">Choose a different photo</button>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div id="pane-url" role="tabpanel" aria-labelledby="tab-url" hidden>
+        <label class="field">
+          <span>Image link</span>
+          <input id="url-input" type="url" placeholder="https://example.com/my-fridge.jpg" autocomplete="off">
+        </label>
+        <p class="hint">Must be a direct link to an image file.</p>
+      </div>
+
+      <label class="field field-inline">
+        <span>Detection method</span>
+        <select id="mode-select">
+          <option value="auto">Auto (best available)</option>
+          <option value="vision">AI vision (Groq)</option>
+          <option value="yolo">YOLOv8 object detection</option>
+        </select>
+      </label>
+
+      <div class="actions">
+        <button type="button" id="skip-btn" class="btn ghost">Type ingredients instead</button>
+        <button type="button" id="detect-btn" class="btn primary" disabled>Find my ingredients</button>
+      </div>
+    </section>
+
+    <!-- STEP 2: ingredients -->
+    <section class="panel" data-panel="2" aria-labelledby="step2-title" hidden>
+      <div class="panel-head">
+        <img id="thumb" class="thumb" alt="" hidden>
+        <div>
+          <h2 id="step2-title">Check your ingredients</h2>
+          <p id="detect-summary" class="muted"></p>
+        </div>
+      </div>
+      <ul id="notes" class="notes" hidden></ul>
+
+      <ul id="chips" class="chips" aria-label="Your ingredients"></ul>
+      <p id="chips-empty" class="muted" hidden>No ingredients yet. Add some below.</p>
+
+      <form id="add-form" class="inline-form">
+        <label class="sr-only" for="add-input">Add ingredients</label>
+        <input id="add-input" type="text" placeholder="Add ingredients, separated by commas" autocomplete="off">
+        <button type="submit" class="btn secondary">Add</button>
+      </form>
+
+      <form id="assistant-form" class="inline-form assistant">
+        <label class="sr-only" for="assistant-input">Ask the assistant to edit your list</label>
+        <input id="assistant-input" type="text" placeholder="Or just say it: “remove banana, add rice and eggs”" autocomplete="off">
+        <button type="submit" class="btn secondary">Update list</button>
+      </form>
+
+      <details class="prefs" open>
+        <summary>Preferences</summary>
+        <div class="prefs-grid">
+          <fieldset>
+            <legend>Prioritize</legend>
+            <label class="check"><input type="radio" name="ranking" value="maximize" checked> Using up what I have</label>
+            <label class="check"><input type="radio" name="ranking" value="minimize"> Fewest extra groceries</label>
+          </fieldset>
+          <fieldset>
+            <legend>Diet</legend>
+            <label class="check"><input type="checkbox" name="diet" value="vegetarian"> Vegetarian</label>
+            <label class="check"><input type="checkbox" name="diet" value="vegan"> Vegan</label>
+            <label class="check"><input type="checkbox" name="diet" value="gluten-free"> Gluten-free</label>
+            <label class="check"><input type="checkbox" name="diet" value="dairy-free"> Dairy-free</label>
+          </fieldset>
+          <fieldset>
+            <legend>Other</legend>
+            <label class="field">
+              <span>Max cooking time</span>
+              <select id="time-select">
+                <option value="">Any</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60">1 hour</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>How many recipes</span>
+              <select id="count-select">
+                <option value="3">3</option>
+                <option value="6" selected>6</option>
+                <option value="9">9</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="pantry-check" checked> I have basics (salt, water, flour)</label>
+          </fieldset>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button type="button" id="back-1" class="btn ghost">Back</button>
+        <button type="button" id="recipes-btn" class="btn primary">Find recipes</button>
+      </div>
+    </section>
+
+    <!-- STEP 3: recipes -->
+    <section class="panel panel-wide" data-panel="3" aria-labelledby="step3-title" hidden>
+      <h2 id="step3-title">Here's what you can cook</h2>
+      <p id="recipes-summary" class="muted"></p>
+      <div id="recipes" class="recipe-grid"></div>
+      <div class="actions">
+        <button type="button" id="back-2" class="btn ghost">Edit ingredients</button>
+        <button type="button" id="restart-btn" class="btn primary">Start over with a new photo</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer wrap">
+    <p>RecipeFindr v2 · Recipes from Spoonacular · Detection by Groq &amp; YOLOv8</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <template id="recipe-template">
+    <article class="recipe">
+      <img class="recipe-img" alt="" loading="lazy">
+      <div class="recipe-body">
+        <h3 class="recipe-title"></h3>
+        <p class="recipe-meta"></p>
+        <p class="recipe-match"></p>
+        <ul class="mini-chips used"></ul>
+        <ul class="mini-chips missing"></ul>
+        <details class="recipe-steps">
+          <summary>Show instructions</summary>
+          <ol></ol>
+        </details>
+        <a class="recipe-link" target="_blank" rel="noopener">View full recipe ↗</a>
+      </div>
+    </article>
+  </template>
+</body>
+</html>
